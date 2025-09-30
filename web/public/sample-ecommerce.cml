@@ -1,0 +1,277 @@
+/* E-Commerce System - DDD Context Map */
+ContextMap ECommerceSystem {
+  type = SYSTEM_LANDSCAPE
+  state = TO_BE
+
+  contains OrderManagementContext, InventoryContext, PaymentContext, FulfillmentContext
+
+  /* Relationships */
+  OrderManagementContext [U,OHS,PL]->[D,ACL] InventoryContext {
+    exposedAggregates = Order
+    implementationTechnology = "REST API"
+  }
+
+  OrderManagementContext [U,OHS]->[D,CF] PaymentContext {
+    exposedAggregates = Order
+    implementationTechnology = "REST API"
+  }
+
+  PaymentContext [U]->[D] FulfillmentContext {
+    exposedAggregates = Payment
+  }
+
+  InventoryContext [P]<->[P] FulfillmentContext {
+    implementationTechnology = "Message Queue"
+  }
+}
+
+/* Bounded Contexts */
+
+BoundedContext OrderManagementContext {
+  type = FEATURE
+  domainVisionStatement = "Manages customer orders from placement to completion"
+  responsibilities = "RULE: Order total must equal sum of line items",
+                    "RULE: Cannot modify order after shipment",
+                    "RULE: Must have at least one line item"
+  implementationTechnology = "Java Spring Boot"
+
+  Aggregate Order {
+    responsibilities = "RULE: Maintain order consistency",
+                      "RULE: Calculate totals automatically"
+
+    Entity Order {
+      aggregateRoot
+
+      String orderNumber required pattern="^ORD-\d+$"
+      - Customer customer required
+      - List<LineItem> items notEmpty size="min=1,max=50"
+      BigDecimal total required min="0"
+      OrderStatus status required
+      Date orderDate required past
+
+      def void addLineItem(@LineItem item);
+      def void removeLineItem(LineItemId id);
+      def BigDecimal calculateTotal() : read-only;
+    }
+
+    Entity LineItem {
+      - Product product required
+      int quantity required min="1" max="1000"
+      BigDecimal unitPrice required min="0"
+      BigDecimal subtotal required min="0"
+
+      def BigDecimal calculateSubtotal() : read-only;
+    }
+
+    ValueObject Customer {
+      String customerId key
+      String name required
+      String email required email
+    }
+
+    ValueObject Product {
+      String productId key
+      String name required
+    }
+
+    Service OrderService {
+      void placeOrder(@Order order) : write [-> PLACED];
+      void confirmOrder(@Order order) : write [PLACED -> CONFIRMED];
+      void cancelOrder(@Order order) : write [PLACED -> CANCELLED X CONFIRMED -> CANCELLED];
+      void shipOrder(@Order order) : write [CONFIRMED -> SHIPPED];
+    }
+
+    CommandEvent PlaceOrderCommand {
+      - Order order required
+      String customerId required
+    }
+
+    CommandEvent ConfirmOrderCommand {
+      String orderId required
+    }
+
+    CommandEvent CancelOrderCommand {
+      String orderId required
+      String reason
+    }
+
+    DomainEvent OrderPlacedEvent {
+      String orderId required
+      String customerId required
+      BigDecimal total required
+      Date placedAt required
+    }
+
+    DomainEvent OrderConfirmedEvent {
+      String orderId required
+      Date confirmedAt required
+    }
+
+    DomainEvent OrderCancelledEvent {
+      String orderId required
+      String reason
+      Date cancelledAt required
+    }
+
+    DomainEvent OrderShippedEvent {
+      String orderId required
+      Date shippedAt required
+    }
+
+    enum OrderStatus {
+      aggregateLifecycle
+      PLACED, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
+    }
+  }
+}
+
+BoundedContext InventoryContext {
+  type = FEATURE
+  domainVisionStatement = "Manages product inventory and stock levels"
+  responsibilities = "RULE: Cannot reserve more than available stock",
+                    "RULE: Low stock alerts when quantity below threshold"
+  implementationTechnology = "Java Spring Boot"
+
+  Aggregate Inventory {
+    responsibilities = "RULE: Maintain accurate stock levels",
+                      "RULE: Prevent negative inventory"
+
+    Entity InventoryItem {
+      aggregateRoot
+
+      - Product product required
+      int availableQuantity required min="0"
+      int reservedQuantity required min="0"
+      int reorderThreshold required min="0"
+
+      def boolean reserveStock(int quantity) : write;
+      def void releaseStock(int quantity) : write;
+      def boolean isLowStock() : read-only;
+    }
+
+    ValueObject Product {
+      String productId key
+      String sku required
+      String name required
+    }
+
+    Service InventoryService {
+      boolean reserveInventory(String productId, int quantity) : write;
+      void releaseInventory(String productId, int quantity) : write;
+      void updateStock(String productId, int quantity) : write;
+    }
+
+    CommandEvent ReserveInventoryCommand {
+      String productId required
+      int quantity required
+    }
+
+    CommandEvent UpdateStockCommand {
+      String productId required
+      int quantity required
+    }
+
+    DomainEvent InventoryReservedEvent {
+      String productId required
+      int quantity required
+      Date reservedAt required
+    }
+
+    DomainEvent StockUpdatedEvent {
+      String productId required
+      int newQuantity required
+      Date updatedAt required
+    }
+
+    DomainEvent LowStockEvent {
+      String productId required
+      int currentQuantity required
+      int threshold required
+    }
+  }
+}
+
+BoundedContext PaymentContext {
+  type = FEATURE
+  domainVisionStatement = "Handles payment processing and refunds"
+  responsibilities = "RULE: Payment must be authorized before capture",
+                    "RULE: Refund amount cannot exceed original payment"
+  implementationTechnology = "Node.js Express"
+
+  Aggregate Payment {
+    responsibilities = "RULE: Idempotent payment processing",
+                      "RULE: Secure payment data handling"
+
+    Entity Payment {
+      aggregateRoot
+
+      String paymentId key required
+      String orderId required
+      BigDecimal amount required min="0"
+      String currency required length="3"
+      PaymentStatus status required
+      Date processedAt
+
+      def void authorize() : write [-> AUTHORIZED];
+      def void capture() : write [AUTHORIZED -> CAPTURED];
+      def void refund(BigDecimal amount) : write [CAPTURED -> REFUNDED];
+    }
+
+    Service PaymentService {
+      void processPayment(String orderId, BigDecimal amount) : write;
+      void refundPayment(String paymentId, BigDecimal amount) : write;
+    }
+
+    enum PaymentStatus {
+      aggregateLifecycle
+      PENDING, AUTHORIZED, CAPTURED, REFUNDED, FAILED
+    }
+  }
+}
+
+BoundedContext FulfillmentContext {
+  type = FEATURE
+  domainVisionStatement = "Manages order fulfillment and shipping"
+  responsibilities = "RULE: Cannot ship without payment confirmation",
+                    "RULE: Must provide tracking information"
+  implementationTechnology = "Python FastAPI"
+
+  Aggregate Shipment {
+    responsibilities = "RULE: Track shipment status",
+                      "RULE: Update delivery estimates"
+
+    Entity Shipment {
+      aggregateRoot
+
+      String shipmentId key required
+      String orderId required
+      - Address shippingAddress required
+      String trackingNumber
+      ShipmentStatus status required
+      Date estimatedDelivery
+      Date actualDelivery
+
+      def void ship(String trackingNumber) : write [PENDING -> SHIPPED];
+      def void deliver() : write [SHIPPED -> DELIVERED];
+    }
+
+    ValueObject Address {
+      String street required
+      String city required
+      String state required
+      String zipCode required pattern="^\d{5}(-\d{4})?$"
+      String country required
+    }
+
+    Service ShipmentService {
+      void createShipment(String orderId, @Address address) : write;
+      void updateTrackingInfo(String shipmentId, String trackingNumber) : write;
+      void markDelivered(String shipmentId) : write;
+    }
+
+    enum ShipmentStatus {
+      aggregateLifecycle
+      PENDING, SHIPPED, IN_TRANSIT, DELIVERED, RETURNED
+    }
+  }
+}

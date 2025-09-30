@@ -1,22 +1,60 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Map, Box, Zap, ArrowRight } from 'lucide-react';
+import { Map, Box, Zap, ArrowRight, FileCode } from 'lucide-react';
 import { AppShell } from '../components/layout/AppShell';
 import { Card, CardBody, CardHeader } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { useProject } from '../contexts/ProjectContext';
+import { useCMLModel } from '../contexts/CMLModelContext';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { boundedContexts } = useProject();
+  const { model, loading, error } = useCMLModel();
+
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="p-8">
+          <div className="text-center">
+            <p className="text-gray-600">Loading DDD model...</p>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppShell>
+        <div className="p-8">
+          <div className="text-center text-red-600">
+            <p>Error loading model: {error}</p>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!model) {
+    return (
+      <AppShell>
+        <div className="p-8">
+          <div className="text-center text-gray-600">
+            <p>No model loaded</p>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const boundedContexts = model.boundedContexts || [];
 
   const totalAggregates = boundedContexts.reduce((sum, ctx) => sum + ctx.aggregates.length, 0);
   const totalCommands = boundedContexts.reduce(
-    (sum, ctx) => sum + ctx.aggregates.reduce((s, agg) => s + agg.commands.length, 0),
+    (sum, ctx) => sum + ctx.aggregates.reduce((s, agg) => s + (agg.commands?.length || 0), 0),
     0
   );
   const totalEvents = boundedContexts.reduce(
-    (sum, ctx) => sum + ctx.aggregates.reduce((s, agg) => s + agg.events.length, 0),
+    (sum, ctx) => sum + ctx.aggregates.reduce((s, agg) => s + (agg.events?.length || 0), 0),
     0
   );
 
@@ -26,9 +64,11 @@ export const Dashboard: React.FC = () => {
         <div className="max-w-7xl mx-auto">
           {/* Hero Section */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">E-Commerce Platform</h1>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              {model.contextMap?.name || 'DDD Platform'}
+            </h1>
             <p className="text-lg text-gray-600">
-              Domain-Driven Design modeling and development workspace
+              Domain-Driven Design Discovery & Refinement Platform
             </p>
           </div>
 
@@ -84,7 +124,7 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card hover onClick={() => navigate('/context-map')}>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -103,6 +143,28 @@ export const Dashboard: React.FC = () => {
               <CardBody>
                 <p className="text-gray-700">
                   Visualize relationships between bounded contexts and understand integration patterns
+                </p>
+              </CardBody>
+            </Card>
+
+            <Card hover onClick={() => navigate('/analysis')}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <FileCode className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">DDD Analysis</h3>
+                      <p className="text-sm text-gray-600">Map legacy code</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400" />
+                </div>
+              </CardHeader>
+              <CardBody>
+                <p className="text-gray-700">
+                  Review AI-generated DDD model and map unmapped legacy code elements
                 </p>
               </CardBody>
             </Card>
@@ -134,26 +196,46 @@ export const Dashboard: React.FC = () => {
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Bounded Contexts</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {boundedContexts.map((context) => (
-                <Card key={context.id} hover onClick={() => navigate(`/context/${context.id}`)}>
-                  <CardHeader className={context.color}>
-                    <h3 className="text-lg font-semibold text-gray-900">{context.name}</h3>
-                  </CardHeader>
-                  <CardBody>
-                    <p className="text-sm text-gray-700 mb-4">{context.description}</p>
-                    <div className="space-y-2 text-sm text-gray-600">
-                      <div className="flex justify-between">
-                        <span>Aggregates</span>
-                        <span className="font-medium">{context.aggregates.length}</span>
+              {boundedContexts.map((context, idx) => {
+                // Generate color based on index
+                const colors = ['bg-blue-50', 'bg-green-50', 'bg-purple-50', 'bg-yellow-50', 'bg-pink-50'];
+                const color = colors[idx % colors.length];
+
+                // Count relationships involving this context
+                const relationshipCount = model.contextMap?.relationships?.filter(
+                  (rel: any) =>
+                    rel.participant1 === context.name ||
+                    rel.participant2 === context.name ||
+                    rel.upstream === context.name ||
+                    rel.downstream === context.name
+                ).length || 0;
+
+                return (
+                  <Card key={context.name} hover onClick={() => navigate(`/context/${context.name}`)}>
+                    <CardHeader className={color}>
+                      <h3 className="text-lg font-semibold text-gray-900">{context.name}</h3>
+                      {context.type && (
+                        <p className="text-xs text-gray-600 mt-1">{context.type}</p>
+                      )}
+                    </CardHeader>
+                    <CardBody>
+                      <p className="text-sm text-gray-700 mb-4">
+                        {context.domainVisionStatement || 'No description'}
+                      </p>
+                      <div className="space-y-2 text-sm text-gray-600">
+                        <div className="flex justify-between">
+                          <span>Aggregates</span>
+                          <span className="font-medium">{context.aggregates.length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Relationships</span>
+                          <span className="font-medium">{relationshipCount}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Integrations</span>
-                        <span className="font-medium">{context.integrations.length}</span>
-                      </div>
-                    </div>
-                  </CardBody>
-                </Card>
-              ))}
+                    </CardBody>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         </div>

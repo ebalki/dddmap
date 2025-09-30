@@ -1,15 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronDown, Map } from 'lucide-react';
-import { useProject } from '../../contexts/ProjectContext';
+import { useCMLModel } from '../../contexts/CMLModelContext';
 
 export const ContextSelector: React.FC = () => {
-  const { boundedContexts, selectedContextId, setSelectedContextId, getContextById } = useProject();
+  const { model } = useCMLModel();
+  const { contextId } = useParams();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const selectedContext = selectedContextId ? getContextById(selectedContextId) : null;
+  const boundedContexts = model?.boundedContexts || [];
+  const selectedContext = contextId ? boundedContexts.find(c => c.name === contextId) : null;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -22,24 +24,20 @@ export const ContextSelector: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSelectContext = (contextId: string) => {
-    setSelectedContextId(contextId);
+  const handleSelectContext = (contextName: string) => {
     setIsOpen(false);
-    navigate(`/context/${contextId}`);
+    navigate(`/context/${contextName}`);
   };
 
   const handleViewContextMap = () => {
-    setSelectedContextId(null);
     setIsOpen(false);
     navigate('/context-map');
   };
 
-  // Context color mapping
-  const contextColors: Record<string, string> = {
-    'order-management': 'bg-chart-1',
-    'inventory': 'bg-chart-3',
-    'payment': 'bg-chart-4',
-    'fulfillment': 'bg-chart-5',
+  // Generate dynamic colors for contexts
+  const getContextColor = (index: number) => {
+    const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-yellow-500', 'bg-pink-500'];
+    return colors[index % colors.length];
   };
 
   return (
@@ -65,19 +63,21 @@ export const ContextSelector: React.FC = () => {
               <span>View Context Map</span>
             </button>
             <div className="border-t border-[#6F797A] my-2"></div>
-            {boundedContexts.map((context) => (
+            {boundedContexts.map((context, index) => (
               <button
-                key={context.id}
-                onClick={() => handleSelectContext(context.id)}
+                key={context.name}
+                onClick={() => handleSelectContext(context.name)}
                 className={`w-full px-4 py-2.5 text-left hover:bg-muted/20 transition-colors ${
-                  selectedContextId === context.id ? 'bg-muted/20' : ''
+                  contextId === context.name ? 'bg-muted/20' : ''
                 }`}
               >
                 <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full ${contextColors[context.id] || 'bg-muted'}`}></div>
+                  <div className={`w-3 h-3 rounded-full ${getContextColor(index)}`}></div>
                   <div>
                     <div className="font-medium text-foreground text-sm">{context.name}</div>
-                    <div className="text-xs text-muted-foreground">{context.description}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {context.domainVisionStatement || context.type || 'No description'}
+                    </div>
                   </div>
                 </div>
               </button>

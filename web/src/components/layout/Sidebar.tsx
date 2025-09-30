@@ -18,15 +18,23 @@ export const Sidebar: React.FC = () => {
     { to: 'workflows', icon: GitBranch, label: 'Workflows' },
   ];
 
-  // Context color mapping
-  const contextColors: Record<string, string> = {
-    'order-management': 'from-chart-1 to-chart-1/80',
-    'inventory': 'from-chart-3 to-chart-3/80',
-    'payment': 'from-chart-4 to-chart-4/80',
-    'fulfillment': 'from-chart-5 to-chart-5/80',
+  // Dynamic gradient based on context type
+  const getGradientClass = () => {
+    switch (currentContext.type) {
+      case 'FEATURE':
+        return 'from-blue-500 to-blue-600';
+      case 'APPLICATION':
+        return 'from-green-500 to-green-600';
+      case 'SYSTEM':
+        return 'from-purple-500 to-purple-600';
+      case 'TEAM':
+        return 'from-yellow-500 to-yellow-600';
+      default:
+        return 'from-gray-500 to-gray-600';
+    }
   };
 
-  const gradientClass = contextColors[currentContext.id] || 'from-primary to-primary/80';
+  const gradientClass = getGradientClass();
 
   return (
     <aside className="w-64 bg-secondary border-r border-[#6F797A] min-h-screen shadow-elevation-sm">

@@ -14,7 +14,7 @@ export const CommandsEventsView: React.FC = () => {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {currentContext.aggregates.map((aggregate) =>
         aggregate.commands.map((cmd) => (
-          <Card key={cmd.id}>
+          <Card key={`${aggregate.name}-${cmd.name}`}>
             <CardHeader className="bg-blue-50">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900">{cmd.name}</h3>
@@ -23,26 +23,31 @@ export const CommandsEventsView: React.FC = () => {
             </CardHeader>
             <CardBody>
               <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-600 mb-2">Parameters</p>
-                  <div className="space-y-1">
-                    {cmd.parameters.map((param) => (
-                      <div key={param.name} className="text-sm bg-gray-50 px-2 py-1 rounded">
-                        <span className="font-mono text-gray-900">{param.name}</span>
-                        <span className="text-gray-500">: {param.type}</span>
-                        {param.required && <Badge className="ml-2" variant="error">required</Badge>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {cmd.producesEvents.length > 0 && (
+                {cmd.attributes.length > 0 && (
                   <div>
-                    <p className="text-xs text-gray-600 mb-2">Produces Events</p>
-                    <div className="flex gap-2 flex-wrap">
-                      {cmd.producesEvents.map((eventId) => {
-                        const event = aggregate.events.find(e => e.id === eventId);
-                        return event ? <Badge key={eventId} variant="event">{event.name}</Badge> : null;
-                      })}
+                    <p className="text-xs text-gray-600 mb-2">Attributes</p>
+                    <div className="space-y-1">
+                      {cmd.attributes.map((attr) => (
+                        <div key={attr.name} className="text-sm bg-gray-50 px-2 py-1 rounded">
+                          <span className="font-mono text-gray-900">{attr.name}</span>
+                          <span className="text-gray-500">: {attr.type}</span>
+                          {attr.required && <Badge className="ml-2" variant="error">required</Badge>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {cmd.references.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-600 mb-2">References</p>
+                    <div className="space-y-1">
+                      {cmd.references.map((ref) => (
+                        <div key={ref.name} className="text-sm bg-blue-50 px-2 py-1 rounded">
+                          <span className="font-mono text-blue-900">→ {ref.name}</span>
+                          <span className="text-blue-700">: {ref.domainObjectType}</span>
+                          {ref.required && <Badge className="ml-2" variant="error">required</Badge>}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -51,6 +56,11 @@ export const CommandsEventsView: React.FC = () => {
           </Card>
         ))
       )}
+      {currentContext.aggregates.every(agg => agg.commands.length === 0) && (
+        <div className="col-span-2 text-center py-12 text-gray-600">
+          No commands defined in this context
+        </div>
+      )}
     </div>
   );
 
@@ -58,41 +68,52 @@ export const CommandsEventsView: React.FC = () => {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {currentContext.aggregates.map((aggregate) =>
         aggregate.events.map((event) => (
-          <Card key={event.id}>
+          <Card key={`${aggregate.name}-${event.name}`}>
             <CardHeader className="bg-orange-50">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900">{event.name}</h3>
-                <div className="flex gap-2">
-                  <Badge variant="aggregate">{aggregate.name}</Badge>
-                  {event.isPublished && <Badge variant="event">Published</Badge>}
-                </div>
+                <Badge variant="aggregate">{aggregate.name}</Badge>
               </div>
             </CardHeader>
             <CardBody>
               <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-600 mb-2">Properties</p>
-                  <div className="space-y-1">
-                    {event.properties.map((prop) => (
-                      <div key={prop.name} className="text-sm bg-gray-50 px-2 py-1 rounded">
-                        <span className="font-mono text-gray-900">{prop.name}</span>
-                        <span className="text-gray-500">: {prop.type}</span>
-                        {prop.required && <Badge className="ml-2" variant="error">required</Badge>}
-                      </div>
-                    ))}
+                {event.attributes.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-600 mb-2">Attributes</p>
+                    <div className="space-y-1">
+                      {event.attributes.map((attr) => (
+                        <div key={attr.name} className="text-sm bg-gray-50 px-2 py-1 rounded">
+                          <span className="font-mono text-gray-900">{attr.name}</span>
+                          <span className="text-gray-500">: {attr.type}</span>
+                          {attr.required && <Badge className="ml-2" variant="error">required</Badge>}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                {event.isPublished && (
-                  <div className="bg-purple-50 border border-purple-200 rounded p-2">
-                    <p className="text-xs text-purple-900">
-                      Published to other bounded contexts
-                    </p>
+                )}
+                {event.references.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-600 mb-2">References</p>
+                    <div className="space-y-1">
+                      {event.references.map((ref) => (
+                        <div key={ref.name} className="text-sm bg-orange-50 px-2 py-1 rounded">
+                          <span className="font-mono text-orange-900">→ {ref.name}</span>
+                          <span className="text-orange-700">: {ref.domainObjectType}</span>
+                          {ref.required && <Badge className="ml-2" variant="error">required</Badge>}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
             </CardBody>
           </Card>
         ))
+      )}
+      {currentContext.aggregates.every(agg => agg.events.length === 0) && (
+        <div className="col-span-2 text-center py-12 text-gray-600">
+          No events defined in this context
+        </div>
       )}
     </div>
   );

@@ -11,8 +11,12 @@ export const AggregateDetail: React.FC = () => {
 
   if (!currentContext) return null;
 
-  const aggregate = currentContext.aggregates.find(agg => agg.id === aggregateId);
+  const aggregate = currentContext.aggregates.find(agg => agg.name === aggregateId);
   if (!aggregate) return <div className="p-8">Aggregate not found</div>;
+
+  const rootEntity = aggregate.entities.find(e => e.aggregateRoot);
+  const childEntities = aggregate.entities.filter(e => !e.aggregateRoot);
+  const businessRules = (aggregate.responsibilities || []).filter(r => r.startsWith('RULE:'));
 
   return (
     <div className="p-8">
@@ -39,30 +43,44 @@ export const AggregateDetail: React.FC = () => {
               <CardBody>
                 <div className="space-y-4">
                   {/* Root Entity */}
-                  <div className="border-2 border-yellow-500 rounded-lg p-4 bg-yellow-50">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <Badge variant="aggregate">Root Entity</Badge>
-                      <h3 className="font-bold text-gray-900">{aggregate.rootEntity.name}</h3>
+                  {rootEntity && (
+                    <div className="border-2 border-yellow-500 rounded-lg p-4 bg-yellow-50">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Badge variant="aggregate">Root Entity</Badge>
+                        <h3 className="font-bold text-gray-900">{rootEntity.name}</h3>
+                      </div>
+                      <div className="space-y-1">
+                        {rootEntity.attributes.map((attr) => (
+                          <div key={attr.name} className="text-sm text-gray-700 flex items-center justify-between">
+                            <span className="font-mono">{attr.name}</span>
+                            <span className="text-gray-500">{attr.type}</span>
+                          </div>
+                        ))}
+                        {rootEntity.references.map((ref) => (
+                          <div key={ref.name} className="text-sm text-blue-700 flex items-center justify-between">
+                            <span className="font-mono">→ {ref.name}</span>
+                            <span className="text-blue-500">{ref.domainObjectType}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      {aggregate.rootEntity.properties.map((prop) => (
-                        <div key={prop.name} className="text-sm text-gray-700 flex items-center justify-between">
-                          <span className="font-mono">{prop.name}</span>
-                          <span className="text-gray-500">{prop.type}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  )}
 
                   {/* Child Entities */}
-                  {aggregate.entities.map((entity) => (
-                    <div key={entity.id} className="border border-gray-300 rounded-lg p-4 ml-8">
+                  {childEntities.map((entity) => (
+                    <div key={entity.name} className="border border-gray-300 rounded-lg p-4 ml-8">
                       <h3 className="font-bold text-gray-900 mb-2">{entity.name}</h3>
                       <div className="space-y-1">
-                        {entity.properties.map((prop) => (
-                          <div key={prop.name} className="text-sm text-gray-700 flex items-center justify-between">
-                            <span className="font-mono">{prop.name}</span>
-                            <span className="text-gray-500">{prop.type}</span>
+                        {entity.attributes.map((attr) => (
+                          <div key={attr.name} className="text-sm text-gray-700 flex items-center justify-between">
+                            <span className="font-mono">{attr.name}</span>
+                            <span className="text-gray-500">{attr.type}</span>
+                          </div>
+                        ))}
+                        {entity.references.map((ref) => (
+                          <div key={ref.name} className="text-sm text-blue-700 flex items-center justify-between">
+                            <span className="font-mono">→ {ref.name}</span>
+                            <span className="text-blue-500">{ref.domainObjectType}</span>
                           </div>
                         ))}
                       </div>
@@ -71,16 +89,22 @@ export const AggregateDetail: React.FC = () => {
 
                   {/* Value Objects */}
                   {aggregate.valueObjects.map((vo) => (
-                    <div key={vo.id} className="border border-blue-300 rounded-lg p-4 ml-8 bg-blue-50">
+                    <div key={vo.name} className="border border-blue-300 rounded-lg p-4 ml-8 bg-blue-50">
                       <div className="flex items-center space-x-2 mb-2">
                         <Badge variant="command">Value Object</Badge>
                         <h3 className="font-bold text-gray-900">{vo.name}</h3>
                       </div>
                       <div className="space-y-1">
-                        {vo.properties.map((prop) => (
-                          <div key={prop.name} className="text-sm text-gray-700 flex items-center justify-between">
-                            <span className="font-mono">{prop.name}</span>
-                            <span className="text-gray-500">{prop.type}</span>
+                        {vo.attributes.map((attr) => (
+                          <div key={attr.name} className="text-sm text-gray-700 flex items-center justify-between">
+                            <span className="font-mono">{attr.name}</span>
+                            <span className="text-gray-500">{attr.type}</span>
+                          </div>
+                        ))}
+                        {vo.references.map((ref) => (
+                          <div key={ref.name} className="text-sm text-blue-700 flex items-center justify-between">
+                            <span className="font-mono">→ {ref.name}</span>
+                            <span className="text-blue-500">{ref.domainObjectType}</span>
                           </div>
                         ))}
                       </div>
@@ -91,85 +115,109 @@ export const AggregateDetail: React.FC = () => {
             </Card>
 
             {/* Business Rules */}
-            <Card>
-              <CardHeader className="bg-green-50">
-                <div className="flex items-center space-x-2">
-                  <Shield className="w-5 h-5 text-green-600" />
-                  <h2 className="text-xl font-semibold text-gray-900">Business Rules & Invariants</h2>
-                </div>
-              </CardHeader>
-              <CardBody>
-                <div className="space-y-4">
-                  {aggregate.businessRules.map((rule) => (
-                    <div key={rule.id} className="border-l-4 border-green-500 pl-4">
-                      <h3 className="font-semibold text-gray-900 mb-1">{rule.name}</h3>
-                      <p className="text-sm text-gray-700 mb-2">{rule.description}</p>
-                      <code className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-800 block">
-                        {rule.invariant}
-                      </code>
-                    </div>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
+            {businessRules.length > 0 && (
+              <Card>
+                <CardHeader className="bg-green-50">
+                  <div className="flex items-center space-x-2">
+                    <Shield className="w-5 h-5 text-green-600" />
+                    <h2 className="text-xl font-semibold text-gray-900">Business Rules & Invariants</h2>
+                  </div>
+                </CardHeader>
+                <CardBody>
+                  <div className="space-y-4">
+                    {businessRules.map((rule, idx) => {
+                      const ruleText = rule.substring(6).trim(); // Remove "RULE: " prefix
+                      return (
+                        <div key={idx} className="border-l-4 border-green-500 pl-4">
+                          <p className="text-sm text-gray-900">{ruleText}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardBody>
+              </Card>
+            )}
           </div>
 
           {/* Right Column - Commands & Events */}
           <div className="space-y-6">
             {/* Commands */}
-            <Card>
-              <CardHeader className="bg-blue-50">
-                <div className="flex items-center space-x-2">
-                  <Zap className="w-5 h-5 text-blue-600" />
-                  <h2 className="text-lg font-semibold text-gray-900">Commands</h2>
-                </div>
-              </CardHeader>
-              <CardBody>
-                <div className="space-y-3">
-                  {aggregate.commands.map((cmd) => (
-                    <div key={cmd.id} className="border border-blue-200 rounded p-3 bg-blue-50">
-                      <h3 className="font-semibold text-blue-900 text-sm mb-2">{cmd.name}</h3>
-                      <div className="space-y-1">
-                        {cmd.parameters.map((param) => (
-                          <div key={param.name} className="text-xs text-gray-700">
-                            <span className="font-mono">{param.name}</span>: {param.type}
+            {aggregate.commands.length > 0 && (
+              <Card>
+                <CardHeader className="bg-blue-50">
+                  <div className="flex items-center space-x-2">
+                    <Zap className="w-5 h-5 text-blue-600" />
+                    <h2 className="text-lg font-semibold text-gray-900">Commands</h2>
+                  </div>
+                </CardHeader>
+                <CardBody>
+                  <div className="space-y-3">
+                    {aggregate.commands.map((cmd) => (
+                      <div key={cmd.name} className="border border-blue-200 rounded p-3 bg-blue-50">
+                        <h3 className="font-semibold text-blue-900 text-sm mb-2">{cmd.name}</h3>
+                        {cmd.attributes.length > 0 && (
+                          <div className="space-y-1">
+                            {cmd.attributes.map((attr) => (
+                              <div key={attr.name} className="text-xs text-gray-700">
+                                <span className="font-mono">{attr.name}</span>: {attr.type}
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
+                        {cmd.references.length > 0 && (
+                          <div className="space-y-1 mt-2">
+                            {cmd.references.map((ref) => (
+                              <div key={ref.name} className="text-xs text-blue-700">
+                                <span className="font-mono">→ {ref.name}</span>: {ref.domainObjectType}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
+                    ))}
+                  </div>
+                </CardBody>
+              </Card>
+            )}
 
             {/* Events */}
-            <Card>
-              <CardHeader className="bg-orange-50">
-                <div className="flex items-center space-x-2">
-                  <Zap className="w-5 h-5 text-orange-600" />
-                  <h2 className="text-lg font-semibold text-gray-900">Events</h2>
-                </div>
-              </CardHeader>
-              <CardBody>
-                <div className="space-y-3">
-                  {aggregate.events.map((event) => (
-                    <div key={event.id} className="border border-orange-200 rounded p-3 bg-orange-50">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-orange-900 text-sm">{event.name}</h3>
-                        {event.isPublished && <Badge variant="event">Published</Badge>}
-                      </div>
-                      <div className="space-y-1">
-                        {event.properties.map((prop) => (
-                          <div key={prop.name} className="text-xs text-gray-700">
-                            <span className="font-mono">{prop.name}</span>: {prop.type}
+            {aggregate.events.length > 0 && (
+              <Card>
+                <CardHeader className="bg-orange-50">
+                  <div className="flex items-center space-x-2">
+                    <Zap className="w-5 h-5 text-orange-600" />
+                    <h2 className="text-lg font-semibold text-gray-900">Events</h2>
+                  </div>
+                </CardHeader>
+                <CardBody>
+                  <div className="space-y-3">
+                    {aggregate.events.map((event) => (
+                      <div key={event.name} className="border border-orange-200 rounded p-3 bg-orange-50">
+                        <h3 className="font-semibold text-orange-900 text-sm mb-2">{event.name}</h3>
+                        {event.attributes.length > 0 && (
+                          <div className="space-y-1">
+                            {event.attributes.map((attr) => (
+                              <div key={attr.name} className="text-xs text-gray-700">
+                                <span className="font-mono">{attr.name}</span>: {attr.type}
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
+                        {event.references.length > 0 && (
+                          <div className="space-y-1 mt-2">
+                            {event.references.map((ref) => (
+                              <div key={ref.name} className="text-xs text-orange-700">
+                                <span className="font-mono">→ {ref.name}</span>: {ref.domainObjectType}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
+                    ))}
+                  </div>
+                </CardBody>
+              </Card>
+            )}
           </div>
         </div>
       </div>

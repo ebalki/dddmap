@@ -1,7 +1,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
-import type { BoundedContext } from '../types/ddd.types';
-import { useProject } from './ProjectContext';
+import type { BoundedContext } from '../types/cml.types';
+import { useCMLModel } from './CMLModelContext';
 
 interface BoundedContextContextType {
   currentContext: BoundedContext | null;
@@ -11,9 +11,10 @@ const BoundedContextContext = createContext<BoundedContextContextType | undefine
 
 export const BoundedContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { contextId } = useParams<{ contextId: string }>();
-  const { getContextById } = useProject();
+  const { model } = useCMLModel();
 
-  const currentContext = contextId ? getContextById(contextId) || null : null;
+  const boundedContexts = model?.boundedContexts || [];
+  const currentContext = contextId ? boundedContexts.find(c => c.name === contextId) || null : null;
 
   return (
     <BoundedContextContext.Provider value={{ currentContext }}>

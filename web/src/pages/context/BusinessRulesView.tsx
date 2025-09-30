@@ -9,6 +9,19 @@ export const BusinessRulesView: React.FC = () => {
 
   if (!currentContext) return null;
 
+  // Extract all business rules from context and aggregate responsibilities
+  const contextRules = (currentContext.responsibilities || [])
+    .filter(r => r.startsWith('RULE:'))
+    .map(r => ({ source: 'Context', text: r.substring(6).trim() }));
+
+  const aggregateRules = currentContext.aggregates.flatMap(aggregate =>
+    (aggregate.responsibilities || [])
+      .filter(r => r.startsWith('RULE:'))
+      .map(r => ({ source: aggregate.name, text: r.substring(6).trim() }))
+  );
+
+  const allRules = [...contextRules, ...aggregateRules];
+
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto">
@@ -20,57 +33,7 @@ export const BusinessRulesView: React.FC = () => {
           <p className="text-gray-600">Domain rules and invariants in {currentContext.name}</p>
         </div>
 
-        <div className="space-y-8">
-          {currentContext.aggregates.map((aggregate) => (
-            <div key={aggregate.id}>
-              {aggregate.businessRules.length > 0 && (
-                <>
-                  <div className="flex items-center space-x-3 mb-4">
-                    <Badge variant="aggregate">{aggregate.name}</Badge>
-                    <h2 className="text-xl font-semibold text-gray-900">
-                      {aggregate.businessRules.length} Rule{aggregate.businessRules.length !== 1 ? 's' : ''}
-                    </h2>
-                  </div>
-
-                  <div className="space-y-4">
-                    {aggregate.businessRules.map((rule) => (
-                      <Card key={rule.id}>
-                        <CardHeader className="bg-green-50">
-                          <div className="flex items-center space-x-2">
-                            <Shield className="w-5 h-5 text-green-600" />
-                            <h3 className="text-lg font-semibold text-gray-900">{rule.name}</h3>
-                          </div>
-                        </CardHeader>
-                        <CardBody>
-                          <div className="space-y-4">
-                            <div>
-                              <p className="text-sm text-gray-600 mb-1">Description</p>
-                              <p className="text-gray-900">{rule.description}</p>
-                            </div>
-
-                            <div>
-                              <p className="text-sm text-gray-600 mb-2">Invariant</p>
-                              <code className="block bg-gray-900 text-green-400 px-4 py-3 rounded font-mono text-sm">
-                                {rule.invariant}
-                              </code>
-                            </div>
-
-                            <div className="flex items-center space-x-2">
-                              <p className="text-sm text-gray-600">Enforced by:</p>
-                              <Badge variant="aggregate">{aggregate.name}</Badge>
-                            </div>
-                          </div>
-                        </CardBody>
-                      </Card>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {currentContext.aggregates.every(agg => agg.businessRules.length === 0) && (
+        {allRules.length === 0 ? (
           <Card>
             <CardBody>
               <p className="text-center text-gray-500 py-8">
@@ -78,6 +41,60 @@ export const BusinessRulesView: React.FC = () => {
               </p>
             </CardBody>
           </Card>
+        ) : (
+          <div className="space-y-4">
+            {allRules.map((rule, idx) => (
+              <Card key={idx}>
+                <CardHeader className="bg-green-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Shield className="w-5 h-5 text-green-600" />
+                      <span className="text-sm font-semibold text-green-800">BUSINESS RULE</span>
+                    </div>
+                    <Badge variant="aggregate">{rule.source}</Badge>
+                  </div>
+                </CardHeader>
+                <CardBody>
+                  <p className="text-gray-900">{rule.text}</p>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Group by Aggregate */}
+        {aggregateRules.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Rules by Aggregate</h2>
+            <div className="space-y-8">
+              {currentContext.aggregates.map((aggregate) => {
+                const rules = (aggregate.responsibilities || []).filter(r => r.startsWith('RULE:'));
+                if (rules.length === 0) return null;
+
+                return (
+                  <div key={aggregate.name}>
+                    <div className="flex items-center space-x-3 mb-4">
+                      <Badge variant="aggregate">{aggregate.name}</Badge>
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        {rules.length} Rule{rules.length !== 1 ? 's' : ''}
+                      </h3>
+                    </div>
+
+                    <div className="space-y-3">
+                      {rules.map((rule, idx) => {
+                        const ruleText = rule.substring(6).trim();
+                        return (
+                          <div key={idx} className="border-l-4 border-green-500 bg-green-50 pl-4 py-3">
+                            <p className="text-sm text-gray-900">{ruleText}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
     </div>
