@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors */
+  --color-background: #FFFFFF;
+  --color-foreground: #1D1B20;
+
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1D1B20;
+
+  --color-primary: #228189;
+  --color-primary-foreground: #FFFFFF;
+
+  --color-secondary: #1B3647;
+  --color-secondary-foreground: #FFFFFF;
+
+  --color-muted: #BBC3C8;
+  --color-muted-foreground: #8D9BA3;
+
+  --color-accent: #228189;
+  --color-accent-foreground: #FFFFFF;
+
+  --color-destructive: #BA1A1A;
+  --color-destructive-foreground: #FFFFFF;
+
+  --color-border: #6F797A;
+  --color-input: #F7F7F7;
+  --color-ring: #228189;
+
+  /* Chart Colors */
+  --color-chart-1: #194A8D;
+  --color-chart-2: #2A83C8;
+  --color-chart-3: #5FBEA3;
+  --color-chart-4: #E99346;
+  --color-chart-5: #97449C;
+
+  /* DDD Colors */
+  --color-event: #E99346;
+  --color-command: #2A83C8;
+  --color-aggregate: #5FBEA3;
+  --color-rule: #5FBEA3;
+  --color-integration: #97449C;
+
+  /* Typography */
+  --font-sans: 'Roboto', sans-serif;
+
+  --text-xs: 10px;
+  --text-sm: 12px;
+  --text-base: 14px;
+  --text-lg: 20px;
+  --text-xl: 22px;
+  --text-2xl: 24px;
+
+  /* Border Radius */
+  --radius: 4px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Shadows */
+  --shadow-elevation-sm: 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12);
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.5;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-foreground font-medium;
+  }
+}

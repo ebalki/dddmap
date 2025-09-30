@@ -1,0 +1,100 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        // WellSky Design System Colors
+        background: '#FFFFFF',
+        foreground: '#1D1B20',
+
+        primary: {
+          DEFAULT: '#228189',
+          foreground: '#FFFFFF',
+        },
+        secondary: {
+          DEFAULT: '#1B3647',
+          foreground: '#FFFFFF',
+        },
+
+        muted: {
+          DEFAULT: '#BBC3C8',
+          foreground: '#8D9BA3',
+        },
+
+        accent: {
+          DEFAULT: '#228189',
+          foreground: '#FFFFFF',
+        },
+
+        destructive: {
+          DEFAULT: '#BA1A1A',
+          foreground: '#FFFFFF',
+        },
+
+        border: '#6F797A',
+        input: '#F7F7F7',
+        ring: '#228189',
+
+        // Card colors
+        card: {
+          DEFAULT: '#FFFFFF',
+          foreground: '#1D1B20',
+        },
+
+        // Chart colors for context visualization
+        chart: {
+          1: '#194A8D',
+          2: '#2A83C8',
+          3: '#5FBEA3',
+          4: '#E99346',
+          5: '#97449C',
+        },
+
+        // DDD Concept Colors (adjusted to fit design system)
+        'event': '#E99346',      // chart-4 orange
+        'command': '#2A83C8',    // chart-2 blue
+        'aggregate': '#5FBEA3',  // chart-3 teal
+        'rule': '#5FBEA3',       // chart-3 green-teal
+        'integration': '#97449C', // chart-5 purple
+        'policy': '#BA1A1A',     // destructive pink-red
+        'hotspot': '#BA1A1A',    // destructive red
+        'external': '#97449C',   // chart-5 purple
+      },
+
+      fontFamily: {
+        sans: ['Roboto', 'sans-serif'],
+      },
+
+      fontSize: {
+        xs: '10px',
+        sm: '12px',
+        base: '14px',
+        lg: '20px',
+        xl: '22px',
+        '2xl': '24px',
+      },
+
+      fontWeight: {
+        normal: '400',
+        medium: '500',
+      },
+
+      borderRadius: {
+        sm: '2px',
+        DEFAULT: '4px',
+        md: '4px',
+        lg: '8px',
+        xl: '12px',
+      },
+
+      boxShadow: {
+        'elevation-sm': '0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12)',
+      },
+    },
+  },
+  plugins: [],
+}
